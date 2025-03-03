@@ -25,8 +25,6 @@ enum Commands {
         day: String,
         #[arg(short, long)]
         cook: String,
-        #[arg(short, long)]
-        description: String,
     },
     /// Edit an existing meal in the plan
     Edit {
@@ -36,8 +34,6 @@ enum Commands {
         day: String,
         #[arg(short, long)]
         cook: Option<String>,
-        #[arg(short, long)]
-        description: Option<String>,
     },
     /// Remove a meal from the plan
     Remove {
@@ -78,17 +74,14 @@ fn main() {
     let args = Args::parse();
 
     match args.command {
-        Some(Commands::Add { meal_type, day, cook, description }) => {
-            println!("Adding meal: {} on {} cooked by {}: {}", meal_type, day, cook, description);
+        Some(Commands::Add { meal_type, day, cook }) => {
+            println!("Adding meal: {} on {} cooked by {}", meal_type, day, cook);
             // TODO: Implement add_meal function
         }
-        Some(Commands::Edit { meal_type, day, cook, description }) => {
+        Some(Commands::Edit { meal_type, day, cook }) => {
             println!("Editing meal: {} on {}", meal_type, day);
             if let Some(c) = cook {
                 println!("New cook: {}", c);
-            }
-            if let Some(d) = description {
-                println!("New description: {}", d);
             }
             // TODO: Implement edit_meal function
         }
@@ -142,14 +135,12 @@ mod tests {
             "--meal-type", "Dinner",
             "--day", "Monday",
             "--cook", "John",
-            "--description", "Spaghetti"
         ]);
         match args.command {
-            Some(Commands::Add { meal_type, day, cook, description }) => {
+            Some(Commands::Add { meal_type, day, cook }) => {
                 assert_eq!(meal_type, "Dinner");
                 assert_eq!(day, "Monday");
                 assert_eq!(cook, "John");
-                assert_eq!(description, "Spaghetti");
             }
             _ => panic!("Expected Add command"),
         }
@@ -162,14 +153,12 @@ mod tests {
             "edit",
             "--meal-type", "Lunch",
             "--day", "Tuesday",
-            "--description", "Sandwich"
         ]);
         match args.command {
-            Some(Commands::Edit { meal_type, day, cook, description }) => {
+            Some(Commands::Edit { meal_type, day, cook }) => {
                 assert_eq!(meal_type, "Lunch");
                 assert_eq!(day, "Tuesday");
                 assert_eq!(cook, None);
-                assert_eq!(description, Some("Sandwich".to_string()));
             }
             _ => panic!("Expected Edit command"),
         }
@@ -241,7 +230,6 @@ mod tests {
             MealType::Dinner,
             Day::Weekday(Weekday::Fri),
             "Test Cook".to_string(),
-            "Test Meal".to_string(),
         );
         plan.add_meal(meal);
         
