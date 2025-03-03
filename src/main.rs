@@ -1,7 +1,7 @@
 mod models;
 
 use clap::{Parser, Subcommand};
-use models::{Config, MealPlan};
+use models::Config;
 use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
@@ -19,7 +19,7 @@ struct Args {
 enum Commands {
     /// Add a new meal to the plan
     Add {
-        #[arg(short, long)]
+        #[arg(short = 't', long)]
         meal_type: String,
         #[arg(short, long)]
         day: String,
@@ -28,7 +28,7 @@ enum Commands {
     },
     /// Edit an existing meal in the plan
     Edit {
-        #[arg(short, long)]
+        #[arg(short = 't', long)]
         meal_type: String,
         #[arg(short, long)]
         day: String,
