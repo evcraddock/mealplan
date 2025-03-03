@@ -67,6 +67,7 @@ impl Meal {
 pub struct MealPlan {
     pub meals: Vec<Meal>,
     pub week_start_date: NaiveDate,
+    #[serde(with = "chrono::serde::ts_seconds")]
     pub last_modified: DateTime<Local>,
 }
 
