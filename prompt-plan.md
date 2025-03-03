@@ -1,6 +1,6 @@
 # Prompt 1: Project Setup
 
-Task: Create a new Rust project for the Meal Plan CLI Tool.
+Task: Update Rust project for the Meal Plan CLI Tool.
 Steps:
 
 - Add the following dependencies in `Cargo.toml`:
@@ -11,6 +11,7 @@ Steps:
 - Implement a basic `main` function that prints a welcome message.
 - Write a simple unit test to verify that the project compiles.
 End with wiring everything together in `main.rs`.
+Update todo.md with completed tasks
 
 ## Prompt 2: Data Models and Serialization
 
