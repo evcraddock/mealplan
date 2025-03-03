@@ -16,22 +16,22 @@
 
 ## Data Models and Serialization
 
-- [ ] **Define Data Structures**
-  - [ ] Create a `Meal` struct with fields:
-    - [ ] `meal_type` (enum: breakfast, lunch, dinner, snack)
-    - [ ] `day` (string/date handling)
-    - [ ] `cook` (string)
-    - [ ] `description` (string)
-  - [ ] Create a `MealPlan` struct to represent a week's meals.
-  - [ ] Create a `Config` struct for settings (e.g., storage path, week start date).
-- [ ] **Implement Traits**
-  - [ ] Derive `Serialize`, `Deserialize`, and `Debug` for each struct.
-- [ ] **File I/O and Serialization Functions**
-  - [ ] Implement functions to serialize and deserialize meal plans to/from JSON.
-  - [ ] Implement functions to read and write meal plans in Markdown.
-- [ ] **Unit Testing for Data Models**
-  - [ ] Write tests for serialization/deserialization.
-  - [ ] Write tests for file I/O operations.
+- [x] **Define Data Structures**
+  - [x] Create a `Meal` struct with fields:
+    - [x] `meal_type` (enum: breakfast, lunch, dinner, snack)
+    - [x] `day` (string/date handling)
+    - [x] `cook` (string)
+    - [x] `description` (string)
+  - [x] Create a `MealPlan` struct to represent a week's meals.
+  - [x] Create a `Config` struct for settings (e.g., storage path, week start date).
+- [x] **Implement Traits**
+  - [x] Derive `Serialize`, `Deserialize`, and `Debug` for each struct.
+- [x] **File I/O and Serialization Functions**
+  - [x] Implement functions to serialize and deserialize meal plans to/from JSON.
+  - [x] Implement functions to read and write meal plans in Markdown.
+- [x] **Unit Testing for Data Models**
+  - [x] Write tests for serialization/deserialization.
+  - [x] Write tests for file I/O operations.
 
 ## Command-Line Interface (CLI) Parsing
 
