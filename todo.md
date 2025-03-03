@@ -35,15 +35,15 @@
 
 ## Command-Line Interface (CLI) Parsing
 
-- [ ] **Define CLI Commands and Options**
-  - [ ] Set up subcommands: `add`, `edit`, `remove`, `export-ical`, `export-json`, `sync`, `config init`.
-  - [ ] Set up global options: `--path`, `--version`, `--help`.
-- [ ] **Implement CLI Parsing with Clap**
-  - [ ] Map CLI arguments to command enums or structures.
-  - [ ] Validate required arguments and provide error messages.
-- [ ] **Unit Tests for CLI Parsing**
-  - [ ] Create tests for each command and option.
-  - [ ] Verify error handling for missing/invalid inputs.
+- [x] **Define CLI Commands and Options**
+  - [x] Set up subcommands: `add`, `edit`, `remove`, `export-ical`, `export-json`, `sync`, `config init`.
+  - [x] Set up global options: `--path`, `--version`, `--help`.
+- [x] **Implement CLI Parsing with Clap**
+  - [x] Map CLI arguments to command enums or structures.
+  - [x] Validate required arguments and provide error messages.
+- [x] **Unit Tests for CLI Parsing**
+  - [x] Create tests for each command and option.
+  - [x] Verify error handling for missing/invalid inputs.
 - [ ] **Wire CLI Parsing to Command Handlers**
 
 ## Implementing Commands
