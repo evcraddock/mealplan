@@ -1,4 +1,4 @@
-use chrono::{DateTime, Local, NaiveDate, Weekday};
+use chrono::{DateTime, Utc, NaiveDate, Weekday};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs::{self, File};
@@ -68,7 +68,7 @@ pub struct MealPlan {
     pub meals: Vec<Meal>,
     pub week_start_date: NaiveDate,
     #[serde(with = "chrono::serde::ts_seconds")]
-    pub last_modified: DateTime<Local>,
+    pub last_modified: DateTime<Utc>,
 }
 
 impl MealPlan {
@@ -77,21 +77,21 @@ impl MealPlan {
         Self {
             meals: Vec::new(),
             week_start_date,
-            last_modified: Local::now(),
+            last_modified: Utc::now(),
         }
     }
 
     /// Adds a meal to the plan
     pub fn add_meal(&mut self, meal: Meal) {
         self.meals.push(meal);
-        self.last_modified = Local::now();
+        self.last_modified = Utc::now();
     }
 
     /// Removes a meal from the plan
     pub fn remove_meal(&mut self, meal_type: &MealType, day: &Day) -> Option<Meal> {
         if let Some(index) = self.meals.iter().position(|m| &m.meal_type == meal_type && &m.day == day) {
             let meal = self.meals.remove(index);
-            self.last_modified = Local::now();
+            self.last_modified = Utc::now();
             Some(meal)
         } else {
             None
@@ -130,7 +130,7 @@ impl MealPlan {
             meals_by_day.entry(&meal.day).or_default().push(meal);
         }
         
-        // Sort days (this is a simple approach, could be improved)
+        // Sort days
         let mut days: Vec<&Day> = meals_by_day.keys().cloned().collect();
         days.sort_by_key(|d| match d {
             Day::Weekday(w) => format!("1{:?}", w),
@@ -199,7 +199,7 @@ impl Config {
         
         Self {
             meal_plan_storage_path: storage_path,
-            current_week_start_date: Local::now().date_naive(),
+            current_week_start_date: Utc::now().date_naive(),
         }
     }
 
