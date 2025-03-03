@@ -51,4 +51,12 @@ mod tests {
         assert_eq!(plan.meals.len(), 1);
         assert_eq!(plan.meals[0].cook, "Test Cook");
     }
+
+    #[test]
+    fn test_meal_plan_creation() {
+        let start_date = NaiveDate::from_ymd_opt(2023, 1, 1).unwrap();
+        let meal_plan = MealPlan::new(start_date);
+        assert_eq!(meal_plan.week_start_date, start_date);
+        assert!(meal_plan.meals.is_empty());
+    }
 }
