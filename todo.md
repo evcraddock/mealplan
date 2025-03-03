@@ -2,17 +2,17 @@
 
 ## Project Setup
 
-- [ ] **Initialize Cargo Project**
-  - [ ] Run `cargo new mealplan` to create a new project.
-  - [ ] Set up the basic project structure.
-- [ ] **Configure Dependencies in Cargo.toml**
-  - [ ] Add `clap` for CLI parsing.
-  - [ ] Add `serde` and `serde_json` for JSON serialization.
-  - [ ] Add `chrono` for date handling.
-  - [ ] Add an iCalendar crate (e.g., `icalendar`).
-- [ ] **Basic Main Function**
-  - [ ] Implement a simple `main.rs` that prints a welcome message.
-  - [ ] Write a basic unit test to ensure the project compiles.
+- [x] **Initialize Cargo Project**
+  - [x] Run `cargo new mealplan` to create a new project.
+  - [x] Set up the basic project structure.
+- [x] **Configure Dependencies in Cargo.toml**
+  - [x] Add `clap` for CLI parsing.
+  - [x] Add `serde` and `serde_json` for JSON serialization.
+  - [x] Add `chrono` for date handling.
+  - [x] Add an iCalendar crate (e.g., `icalendar`).
+- [x] **Basic Main Function**
+  - [x] Implement a simple `main.rs` that prints a welcome message.
+  - [x] Write a basic unit test to ensure the project compiles.
 
 ## Data Models and Serialization
 
