@@ -1,20 +1,124 @@
 mod models;
 
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use models::{Config, MealPlan};
+use std::path::PathBuf;
 
-/// Meal Plan CLI Tool
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    // Command line arguments will be added here later
+    #[command(subcommand)]
+    command: Option<Commands>,
+
+    /// Optional custom path for config and data files
+    #[arg(short, long, global = true)]
+    path: Option<PathBuf>,
+}
+
+#[derive(Subcommand, Debug)]
+enum Commands {
+    /// Add a new meal to the plan
+    Add {
+        #[arg(short, long)]
+        meal_type: String,
+        #[arg(short, long)]
+        day: String,
+        #[arg(short, long)]
+        cook: String,
+        #[arg(short, long)]
+        description: String,
+    },
+    /// Edit an existing meal in the plan
+    Edit {
+        #[arg(short, long)]
+        meal_type: String,
+        #[arg(short, long)]
+        day: String,
+        #[arg(short, long)]
+        cook: Option<String>,
+        #[arg(short, long)]
+        description: Option<String>,
+    },
+    /// Remove a meal from the plan
+    Remove {
+        #[arg(short, long)]
+        meal_type: String,
+        #[arg(short, long)]
+        day: String,
+    },
+    /// Export the meal plan to iCal format
+    ExportIcal {
+        #[arg(short, long)]
+        output: PathBuf,
+    },
+    /// Export the meal plan to JSON format
+    ExportJson {
+        #[arg(short, long)]
+        output: PathBuf,
+    },
+    /// Sync the meal plan with a remote source
+    Sync {
+        #[arg(short, long)]
+        source: String,
+    },
+    /// Initialize or update the configuration
+    Config {
+        #[command(subcommand)]
+        action: ConfigAction,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+enum ConfigAction {
+    /// Initialize the configuration
+    Init,
 }
 
 fn main() {
-    let _args = Args::parse();
-    println!("Welcome to the Meal Plan CLI Tool!");
-    println!("This tool helps you organize and manage your weekly meal plans.");
-    
+    let args = Args::parse();
+
+    match args.command {
+        Some(Commands::Add { meal_type, day, cook, description }) => {
+            println!("Adding meal: {} on {} cooked by {}: {}", meal_type, day, cook, description);
+            // TODO: Implement add_meal function
+        }
+        Some(Commands::Edit { meal_type, day, cook, description }) => {
+            println!("Editing meal: {} on {}", meal_type, day);
+            if let Some(c) = cook {
+                println!("New cook: {}", c);
+            }
+            if let Some(d) = description {
+                println!("New description: {}", d);
+            }
+            // TODO: Implement edit_meal function
+        }
+        Some(Commands::Remove { meal_type, day }) => {
+            println!("Removing meal: {} on {}", meal_type, day);
+            // TODO: Implement remove_meal function
+        }
+        Some(Commands::ExportIcal { output }) => {
+            println!("Exporting meal plan to iCal: {:?}", output);
+            // TODO: Implement export_ical function
+        }
+        Some(Commands::ExportJson { output }) => {
+            println!("Exporting meal plan to JSON: {:?}", output);
+            // TODO: Implement export_json function
+        }
+        Some(Commands::Sync { source }) => {
+            println!("Syncing meal plan with: {}", source);
+            // TODO: Implement sync function
+        }
+        Some(Commands::Config { action: ConfigAction::Init }) => {
+            println!("Initializing configuration");
+            // TODO: Implement config_init function
+        }
+        None => {
+            println!("Welcome to the Meal Plan CLI Tool!");
+            println!("This tool helps you organize and manage your weekly meal plans.");
+            println!("Use --help to see available commands.");
+        }
+    }
+
     // Initialize default configuration
     let config = Config::new();
     println!("Default storage path: {:?}", config.meal_plan_storage_path);
@@ -23,6 +127,100 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use clap::CommandFactory;
+
+    #[test]
+    fn verify_cli() {
+        Args::command().debug_assert()
+    }
+
+    #[test]
+    fn test_add_command() {
+        let args = Args::parse_from(&[
+            "mealplan",
+            "add",
+            "--meal-type", "Dinner",
+            "--day", "Monday",
+            "--cook", "John",
+            "--description", "Spaghetti"
+        ]);
+        match args.command {
+            Some(Commands::Add { meal_type, day, cook, description }) => {
+                assert_eq!(meal_type, "Dinner");
+                assert_eq!(day, "Monday");
+                assert_eq!(cook, "John");
+                assert_eq!(description, "Spaghetti");
+            }
+            _ => panic!("Expected Add command"),
+        }
+    }
+
+    #[test]
+    fn test_edit_command() {
+        let args = Args::parse_from(&[
+            "mealplan",
+            "edit",
+            "--meal-type", "Lunch",
+            "--day", "Tuesday",
+            "--description", "Sandwich"
+        ]);
+        match args.command {
+            Some(Commands::Edit { meal_type, day, cook, description }) => {
+                assert_eq!(meal_type, "Lunch");
+                assert_eq!(day, "Tuesday");
+                assert_eq!(cook, None);
+                assert_eq!(description, Some("Sandwich".to_string()));
+            }
+            _ => panic!("Expected Edit command"),
+        }
+    }
+
+    #[test]
+    fn test_remove_command() {
+        let args = Args::parse_from(&[
+            "mealplan",
+            "remove",
+            "--meal-type", "Breakfast",
+            "--day", "Wednesday"
+        ]);
+        match args.command {
+            Some(Commands::Remove { meal_type, day }) => {
+                assert_eq!(meal_type, "Breakfast");
+                assert_eq!(day, "Wednesday");
+            }
+            _ => panic!("Expected Remove command"),
+        }
+    }
+
+    #[test]
+    fn test_export_ical_command() {
+        let args = Args::parse_from(&[
+            "mealplan",
+            "export-ical",
+            "--output", "/tmp/mealplan.ics"
+        ]);
+        match args.command {
+            Some(Commands::ExportIcal { output }) => {
+                assert_eq!(output, PathBuf::from("/tmp/mealplan.ics"));
+            }
+            _ => panic!("Expected ExportIcal command"),
+        }
+    }
+
+    #[test]
+    fn test_config_init_command() {
+        let args = Args::parse_from(&[
+            "mealplan",
+            "config",
+            "init"
+        ]);
+        match args.command {
+            Some(Commands::Config { action: ConfigAction::Init }) => {},
+            _ => panic!("Expected Config Init command"),
+        }
+    }
+
+    // Existing model tests...
     use crate::models::{Day, Meal, MealType};
     use chrono::{NaiveDate, Weekday};
     
