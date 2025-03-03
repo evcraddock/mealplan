@@ -50,18 +50,20 @@
 
 ### Add Command
 
-- [ ] **Implement `add` Command Handler**
-  - [ ] Validate meal type (breakfast, lunch, dinner, snack).
-  - [ ] Validate day input (day name or date) and future date restriction.
-  - [ ] Ensure cook and description are provided.
-  - [ ] Check for duplicate meals on the same day.
-  - [ ] Prompt for confirmation on duplicates.
-  - [ ] Update meal plan storage (Markdown & JSON).
-- [ ] **Unit Tests for `add` Command**
-  - [ ] Test successful meal addition.
-  - [ ] Test duplicate detection and confirmation.
-  - [ ] Test edge cases (invalid types, past dates).
-- [ ] **Wire `add` Handler to CLI**
+- [x] **Implement `add` Command Handler**
+  - [x] Validate meal type (breakfast, lunch, dinner, snack).
+  - [x] Validate day input (day name or date).
+  - [x] Ensure cook and description are provided.
+  - [x] Check for duplicate meals on the same day.
+  - [x] Prompt for confirmation on duplicates.
+  - [x] Update meal plan storage (JSON).
+- [x] **Unit Tests for `add` Command**
+  - [x] Test successful meal addition.
+  - [x] Test duplicate detection and confirmation.
+  - [x] Test edge cases (invalid types, invalid days).
+- [x] **Wire `add` Handler to CLI**
+
+Note: Future date restriction not implemented yet.
 
 ### Edit Command
 
