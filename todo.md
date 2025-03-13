@@ -67,17 +67,17 @@ Note: Future date restriction not implemented yet.
 
 ### Edit Command
 
-- [ ] **Implement `edit` Command Handler**
-  - [ ] Retrieve existing meal based on meal type and day.
-  - [ ] Display current meal details.
-  - [ ] Prompt for updated values.
-  - [ ] Validate new input and update the meal entry.
-  - [ ] Persist changes to Markdown & JSON.
-- [ ] **Unit Tests for `edit` Command**
-  - [ ] Test editing an existing meal.
-  - [ ] Test handling non-existent meals.
-  - [ ] Validate updated input values.
-- [ ] **Wire `edit` Handler to CLI**
+- [x] **Implement `edit` Command Handler**
+  - [x] Retrieve existing meal based on meal type and day.
+  - [x] Display current meal details.
+  - [x] Prompt for updated values.
+  - [x] Validate new input and update the meal entry.
+  - [x] Persist changes to Markdown & JSON.
+- [x] **Unit Tests for `edit` Command**
+  - [x] Test editing an existing meal.
+  - [x] Test handling non-existent meals.
+  - [x] Validate updated input values.
+- [x] **Wire `edit` Handler to CLI**
 
 ### Remove Command
 
