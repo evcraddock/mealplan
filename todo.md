@@ -93,16 +93,16 @@ Note: Future date restriction not implemented yet.
 
 ### Export Commands
 
-- [ ] **Implement `export-ical` Command Handler**
-  - [ ] Convert current week's meal plan to an iCalendar (.ics) file.
-  - [ ] Validate the generated iCalendar format.
-- [ ] **Implement `export-json` Command Handler**
-  - [ ] Serialize the meal plan to JSON.
-  - [ ] Write JSON file to the designated storage location.
-- [ ] **Unit Tests for Export Commands**
-  - [ ] Test iCalendar generation for correct event details.
-  - [ ] Test JSON export matches meal plan data.
-- [ ] **Wire Export Handlers to CLI**
+- [x] **Implement `export-ical` Command Handler**
+  - [x] Convert current week's meal plan to an iCalendar (.ics) file.
+  - [x] Validate the generated iCalendar format.
+- [x] **Implement `export-json` Command Handler**
+  - [x] Serialize the meal plan to JSON.
+  - [x] Write JSON file to the designated storage location.
+- [x] **Unit Tests for Export Commands**
+  - [x] Test iCalendar generation for correct event details.
+  - [x] Test JSON export matches meal plan data.
+- [x] **Wire Export Handlers to CLI**
 
 ### Sync Command
 

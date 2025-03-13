@@ -129,12 +129,16 @@ fn main() {
             }
         }
         Some(Commands::ExportIcal { output }) => {
-            println!("Exporting meal plan to iCal: {:?}", output);
-            // TODO: Implement export_ical function
+            match export_ical(&meal_plan, &output) {
+                Ok(_) => println!("Meal plan exported to iCal successfully: {:?}", output),
+                Err(e) => eprintln!("Failed to export meal plan to iCal: {}", e),
+            }
         }
         Some(Commands::ExportJson { output }) => {
-            println!("Exporting meal plan to JSON: {:?}", output);
-            // TODO: Implement export_json function
+            match export_json(&meal_plan, &output) {
+                Ok(_) => println!("Meal plan exported to JSON successfully: {:?}", output),
+                Err(e) => eprintln!("Failed to export meal plan to JSON: {}", e),
+            }
         }
         Some(Commands::Sync { source }) => {
             println!("Syncing meal plan with: {}", source);
@@ -293,6 +297,86 @@ fn parse_day(day_str: &str) -> Result<Day, String> {
         "sunday" => Ok(Day::Weekday(Weekday::Sun)),
         _ => Err("Invalid day format. Use YYYY-MM-DD or day name.".to_string()),
     }
+}
+
+fn export_ical(meal_plan: &MealPlan, output_path: &PathBuf) -> Result<(), String> {
+    use icalendar::{Calendar, Component, Event, Property};
+    use chrono::{Duration, TimeZone, Utc};
+    
+    // Create a new calendar
+    let mut calendar = Calendar::new();
+    
+    // Add calendar properties
+    calendar.push(Property::new("PRODID", "-//Meal Plan CLI//EN"));
+    calendar.push(Property::new("VERSION", "2.0"));
+    calendar.push(Property::new("CALSCALE", "GREGORIAN"));
+    
+    // Add events for each meal
+    for meal in &meal_plan.meals {
+        // Create a new event
+        let mut event = Event::new();
+        
+        // Set event properties
+        let summary = format!("{}: {}", meal.meal_type, meal.description);
+        event.push(Property::new("SUMMARY", summary));
+        
+        let description = format!("Cook: {}", meal.cook);
+        event.push(Property::new("DESCRIPTION", description));
+        
+        // Set date/time
+        let date = match &meal.day {
+            Day::Weekday(weekday) => {
+                // Find the next occurrence of this weekday from the week start date
+                let days_to_add = (*weekday as i64 - meal_plan.week_start_date.weekday().num_days_from_monday() as i64)
+                    .rem_euclid(7);
+                meal_plan.week_start_date + Duration::days(days_to_add)
+            },
+            Day::Date(date) => *date,
+        };
+        
+        // Set meal time based on meal type (approximate times)
+        let (hour, minute) = match meal.meal_type {
+            MealType::Breakfast => (8, 0),
+            MealType::Lunch => (12, 0),
+            MealType::Dinner => (18, 0),
+            MealType::Snack => (15, 0),
+        };
+        
+        // Create start and end times (1 hour duration)
+        let start_time = Utc.with_ymd_and_hms(
+            date.year(), date.month(), date.day(), 
+            hour, minute, 0
+        ).unwrap();
+        
+        let end_time = start_time + Duration::hours(1);
+        
+        event.push(Property::new("DTSTART", start_time.format("%Y%m%dT%H%M%SZ").to_string()));
+        event.push(Property::new("DTEND", end_time.format("%Y%m%dT%H%M%SZ").to_string()));
+        
+        // Add a unique identifier
+        let uid = format!("meal-{}-{}-{:?}@mealplan", 
+            meal.meal_type.to_string().to_lowercase(),
+            date.format("%Y%m%d"),
+            std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs()
+        );
+        event.push(Property::new("UID", uid));
+        
+        // Add the event to the calendar
+        calendar.push(event);
+    }
+    
+    // Write the calendar to file
+    let ical_string = calendar.to_string();
+    std::fs::write(output_path, ical_string)
+        .map_err(|e| format!("Failed to write iCal file: {}", e))?;
+    
+    Ok(())
+}
+
+fn export_json(meal_plan: &MealPlan, output_path: &PathBuf) -> Result<(), String> {
+    // Simply use the existing save_to_json method
+    meal_plan.save_to_json(output_path)
+        .map_err(|e| format!("Failed to export meal plan to JSON: {}", e))
 }
 
 fn confirm() -> bool {
@@ -483,5 +567,56 @@ mod tests {
         assert!(matches!(parse_day("2023-05-01"), Ok(Day::Date(_))));
         assert!(matches!(parse_day("Monday"), Ok(Day::Weekday(Weekday::Mon))));
         assert!(parse_day("Invalid").is_err());
+    }
+    
+    #[test]
+    fn test_export_json() {
+        let mut meal_plan = MealPlan::new(Local::now().date_naive());
+        
+        // Add a meal
+        add_meal(&mut meal_plan, "Dinner".to_string(), "Monday".to_string(), "John".to_string(), "Pasta".to_string()).unwrap();
+        
+        // Create a temporary file for testing
+        let temp_dir = tempfile::tempdir().unwrap();
+        let output_path = temp_dir.path().join("test_export.json");
+        
+        // Export to JSON
+        assert!(export_json(&meal_plan, &output_path).is_ok());
+        
+        // Verify the file exists
+        assert!(output_path.exists());
+        
+        // Load the exported file and verify contents
+        let loaded_plan = MealPlan::load_from_json(&output_path).unwrap();
+        assert_eq!(loaded_plan.meals.len(), 1);
+        assert_eq!(loaded_plan.meals[0].description, "Pasta");
+    }
+    
+    #[test]
+    fn test_export_ical() {
+        let mut meal_plan = MealPlan::new(Local::now().date_naive());
+        
+        // Add a meal
+        add_meal(&mut meal_plan, "Dinner".to_string(), "Monday".to_string(), "John".to_string(), "Pasta".to_string()).unwrap();
+        
+        // Create a temporary file for testing
+        let temp_dir = tempfile::tempdir().unwrap();
+        let output_path = temp_dir.path().join("test_export.ics");
+        
+        // Export to iCal
+        assert!(export_ical(&meal_plan, &output_path).is_ok());
+        
+        // Verify the file exists
+        assert!(output_path.exists());
+        
+        // Read the file and check for expected iCal format elements
+        let content = std::fs::read_to_string(&output_path).unwrap();
+        assert!(content.contains("BEGIN:VCALENDAR"));
+        assert!(content.contains("VERSION:2.0"));
+        assert!(content.contains("BEGIN:VEVENT"));
+        assert!(content.contains("SUMMARY:Dinner: Pasta"));
+        assert!(content.contains("DESCRIPTION:Cook: John"));
+        assert!(content.contains("END:VEVENT"));
+        assert!(content.contains("END:VCALENDAR"));
     }
 }
