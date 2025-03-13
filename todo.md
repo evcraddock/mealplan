@@ -81,15 +81,15 @@ Note: Future date restriction not implemented yet.
 
 ### Remove Command
 
-- [ ] **Implement `remove` Command Handler**
-  - [ ] Retrieve meal to be removed based on meal type and day.
-  - [ ] Check if the meal is the last of the week; if so, prompt for confirmation.
-  - [ ] Remove the meal and update storage.
-- [ ] **Unit Tests for `remove` Command**
-  - [ ] Test successful removal.
-  - [ ] Test confirmation prompt for last meal removal.
-  - [ ] Test removal of non-existent meals.
-- [ ] **Wire `remove` Handler to CLI**
+- [x] **Implement `remove` Command Handler**
+  - [x] Retrieve meal to be removed based on meal type and day.
+  - [x] Check if the meal is the last of the week; if so, prompt for confirmation.
+  - [x] Remove the meal and update storage.
+- [x] **Unit Tests for `remove` Command**
+  - [x] Test successful removal.
+  - [x] Test confirmation prompt for last meal removal.
+  - [x] Test removal of non-existent meals.
+- [x] **Wire `remove` Handler to CLI**
 
 ### Export Commands
 

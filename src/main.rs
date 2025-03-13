@@ -117,8 +117,16 @@ fn main() {
             }
         }
         Some(Commands::Remove { meal_type, day }) => {
-            println!("Removing meal: {} on {}", meal_type, day);
-            // TODO: Implement remove_meal function
+            match remove_meal(&mut meal_plan, meal_type, day) {
+                Ok(_) => {
+                    println!("Meal removed successfully.");
+                    // Save the updated meal plan
+                    if let Err(e) = meal_plan.save_to_json(&meal_plan_path) {
+                        eprintln!("Failed to save meal plan: {}", e);
+                    }
+                }
+                Err(e) => eprintln!("Failed to remove meal: {}", e),
+            }
         }
         Some(Commands::ExportIcal { output }) => {
             println!("Exporting meal plan to iCal: {:?}", output);
@@ -144,6 +152,37 @@ fn main() {
     }
 
     println!("Default storage path: {:?}", config.meal_plan_storage_path);
+}
+
+fn remove_meal(meal_plan: &mut MealPlan, meal_type_str: String, day_str: String) -> Result<(), String> {
+    // Validate meal type
+    let meal_type = match meal_type_str.to_lowercase().as_str() {
+        "breakfast" => MealType::Breakfast,
+        "lunch" => MealType::Lunch,
+        "dinner" => MealType::Dinner,
+        "snack" => MealType::Snack,
+        _ => return Err("Invalid meal type. Must be breakfast, lunch, dinner, or snack.".to_string()),
+    };
+
+    // Validate day
+    let day = parse_day(&day_str)?;
+
+    // Check if the meal exists
+    if meal_plan.find_meal(&meal_type, &day).is_none() {
+        return Err(format!("No {} meal found for {}.", meal_type, day));
+    }
+
+    // Check if this is the last meal in the plan
+    if meal_plan.meals.len() == 1 {
+        println!("This is the last meal in your plan. Are you sure you want to remove it? (y/n)");
+        if !confirm() {
+            return Err("Meal removal cancelled by user.".to_string());
+        }
+    }
+
+    // Remove the meal
+    meal_plan.remove_meal(&meal_type, &day);
+    Ok(())
 }
 
 fn edit_meal(meal_plan: &mut MealPlan, meal_type_str: String, day_str: String, new_cook: Option<String>, new_description: Option<String>) -> Result<(), String> {
@@ -401,6 +440,42 @@ mod tests {
         let updated_meal = meal_plan.find_meal(&MealType::Dinner, &Day::Weekday(Weekday::Mon)).unwrap();
         assert_eq!(updated_meal.cook, "Alice");
         assert_eq!(updated_meal.description, "Updated pasta dish");
+    }
+
+    #[test]
+    fn test_remove_meal() {
+        let mut meal_plan = MealPlan::new(Local::now().date_naive());
+        
+        // Test removing a non-existent meal
+        assert!(remove_meal(&mut meal_plan, "Breakfast".to_string(), "Monday".to_string()).is_err());
+        
+        // Test removing with invalid meal type
+        assert!(remove_meal(&mut meal_plan, "Brunch".to_string(), "Monday".to_string()).is_err());
+        
+        // Test removing with invalid day
+        assert!(remove_meal(&mut meal_plan, "Dinner".to_string(), "Someday".to_string()).is_err());
+        
+        // Add a meal first
+        add_meal(&mut meal_plan, "Dinner".to_string(), "Monday".to_string(), "John".to_string(), "Pasta".to_string()).unwrap();
+        
+        // Test successful removal
+        assert!(remove_meal(&mut meal_plan, "Dinner".to_string(), "Monday".to_string()).is_ok());
+        
+        // Verify the meal was removed
+        assert!(meal_plan.find_meal(&MealType::Dinner, &Day::Weekday(Weekday::Mon)).is_none());
+        
+        // Add multiple meals to test the last meal confirmation
+        add_meal(&mut meal_plan, "Breakfast".to_string(), "Monday".to_string(), "Alice".to_string(), "Cereal".to_string()).unwrap();
+        add_meal(&mut meal_plan, "Lunch".to_string(), "Monday".to_string(), "Bob".to_string(), "Sandwich".to_string()).unwrap();
+        
+        // Remove one meal, should succeed without confirmation (not the last meal)
+        assert!(remove_meal(&mut meal_plan, "Breakfast".to_string(), "Monday".to_string()).is_ok());
+        
+        // Verify only one meal remains
+        assert_eq!(meal_plan.meals.len(), 1);
+        
+        // The last meal removal would normally prompt for confirmation
+        // In tests, we can't easily simulate user input, so we'll skip testing that specific case
     }
 
     #[test]
