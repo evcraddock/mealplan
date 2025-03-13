@@ -33,14 +33,15 @@ enum Commands {
     },
     /// Edit an existing meal in the plan
     Edit {
+        /// New description for the meal (optional)
+        description: Option<String>,
+        
         #[arg(short = 't', long)]
         meal_type: String,
         #[arg(short, long)]
         day: String,
         #[arg(short, long)]
         cook: Option<String>,
-        #[arg(short, long)]
-        description: Option<String>,
     },
     /// Remove a meal from the plan
     Remove {
@@ -103,7 +104,7 @@ fn main() {
                 Err(e) => eprintln!("Failed to add meal: {}", e),
             }
         }
-        Some(Commands::Edit { meal_type, day, cook, description }) => {
+        Some(Commands::Edit { description, meal_type, day, cook }) => {
             match edit_meal(&mut meal_plan, meal_type, day, cook, description) {
                 Ok(_) => {
                     println!("Meal updated successfully.");
@@ -299,16 +300,16 @@ mod tests {
         let args = Args::parse_from(&[
             "mealplan",
             "edit",
+            "Updated meal description",
             "--meal-type", "Lunch",
             "--day", "Tuesday",
-            "--description", "Updated meal description",
         ]);
         match args.command {
-            Some(Commands::Edit { meal_type, day, cook, description }) => {
+            Some(Commands::Edit { description, meal_type, day, cook }) => {
+                assert_eq!(description, Some("Updated meal description".to_string()));
                 assert_eq!(meal_type, "Lunch");
                 assert_eq!(day, "Tuesday");
                 assert_eq!(cook, None);
-                assert_eq!(description, Some("Updated meal description".to_string()));
             }
             _ => panic!("Expected Edit command"),
         }
