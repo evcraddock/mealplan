@@ -47,15 +47,17 @@ pub struct Meal {
     pub meal_type: MealType,
     pub day: Day,
     pub cook: String,
+    pub description: String,
 }
 
 impl Meal {
     /// Creates a new meal
-    pub fn new(meal_type: MealType, day: Day, cook: String) -> Self {
+    pub fn new(meal_type: MealType, day: Day, cook: String, description: String) -> Self {
         Self {
             meal_type,
             day,
             cook,
+            description,
         }
     }
 }
@@ -141,7 +143,8 @@ impl MealPlan {
             if let Some(meals) = meals_by_day.get(day) {
                 for meal in meals {
                     markdown.push_str(&format!("### {}\n", meal.meal_type));
-                    markdown.push_str(&format!("- Cook: {}\n\n", meal.cook));
+                    markdown.push_str(&format!("- Cook: {}\n", meal.cook));
+                    markdown.push_str(&format!("- Description: {}\n\n", meal.description));
                 }
             }
         }
@@ -230,10 +233,12 @@ mod tests {
             MealType::Dinner,
             Day::Weekday(Weekday::Mon),
             "John".to_string(),
+            "Steak with potatoes".to_string(),
         );
         
         assert_eq!(meal.meal_type, MealType::Dinner);
         assert_eq!(meal.cook, "John");
+        assert_eq!(meal.description, "Steak with potatoes");
         
         match meal.day {
             Day::Weekday(day) => assert_eq!(day, Weekday::Mon),
@@ -251,6 +256,7 @@ mod tests {
             MealType::Lunch,
             Day::Weekday(Weekday::Wed),
             "Alice".to_string(),
+            "Caesar Salad".to_string(),
         );
         plan.add_meal(meal);
         
@@ -281,6 +287,7 @@ mod tests {
             MealType::Breakfast,
             Day::Date(NaiveDate::from_ymd_opt(2023, 1, 3).unwrap()),
             "Bob".to_string(),
+            "Pancakes with syrup".to_string(),
         );
         plan.add_meal(meal);
         
@@ -309,6 +316,7 @@ mod tests {
             MealType::Breakfast,
             Day::Weekday(Weekday::Mon),
             "Charlie".to_string(),
+            "Oatmeal with berries".to_string(),
         );
         plan.add_meal(meal1);
         
@@ -316,6 +324,7 @@ mod tests {
             MealType::Dinner,
             Day::Weekday(Weekday::Mon),
             "Diana".to_string(),
+            "Grilled chicken with vegetables".to_string(),
         );
         plan.add_meal(meal2);
         
@@ -331,8 +340,10 @@ mod tests {
         assert!(content.contains("## Mon"));
         assert!(content.contains("### Breakfast"));
         assert!(content.contains("- Cook: Charlie"));
+        assert!(content.contains("- Description: Oatmeal with berries"));
         assert!(content.contains("### Dinner"));
         assert!(content.contains("- Cook: Diana"));
+        assert!(content.contains("- Description: Grilled chicken with vegetables"));
     }
 
     #[test]
