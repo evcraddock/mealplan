@@ -62,9 +62,10 @@ enum Commands {
         #[arg(short, long)]
         output: PathBuf,
     },
-    /// Sync the meal plan with a remote source
+    /// Sync the meal plan between JSON and Markdown formats
     Sync {
-        #[arg(short, long)]
+        /// Source format to sync from (json, markdown, or auto)
+        #[arg(short, long, default_value = "auto")]
         source: String,
     },
     /// Initialize or update the configuration
@@ -143,8 +144,10 @@ fn main() {
             }
         }
         Some(Commands::Sync { source }) => {
-            println!("Syncing meal plan with: {}", source);
-            // TODO: Implement sync function
+            match sync_meal_plan(&config, &source) {
+                Ok(_) => println!("Meal plan synchronized successfully."),
+                Err(e) => eprintln!("Failed to sync meal plan: {}", e),
+            }
         }
         Some(Commands::Config { action: ConfigAction::Init }) => {
             println!("Initializing configuration");
@@ -363,6 +366,74 @@ fn export_ical(meal_plan: &MealPlan, output_path: &PathBuf) -> Result<(), String
     let ical_string = calendar.to_string();
     std::fs::write(output_path, ical_string)
         .map_err(|e| format!("Failed to write iCal file: {}", e))?;
+    
+    Ok(())
+}
+
+fn sync_meal_plan(config: &Config, source_type: &str) -> Result<(), String> {
+    let json_path = config.meal_plan_storage_path.join("meal_plan.json");
+    let markdown_path = config.meal_plan_storage_path.join("meal_plan.md");
+    
+    // Check if both files exist
+    let json_exists = json_path.exists();
+    let markdown_exists = markdown_path.exists();
+    
+    if !json_exists && !markdown_exists {
+        return Err("No meal plan files found to sync.".to_string());
+    }
+    
+    // Get file modification times
+    let json_modified = if json_exists {
+        std::fs::metadata(&json_path)
+            .map_err(|e| format!("Failed to read JSON file metadata: {}", e))?
+            .modified()
+            .map_err(|e| format!("Failed to get JSON file modification time: {}", e))?
+    } else {
+        // If JSON doesn't exist, use a very old time
+        std::time::SystemTime::UNIX_EPOCH
+    };
+    
+    let markdown_modified = if markdown_exists {
+        std::fs::metadata(&markdown_path)
+            .map_err(|e| format!("Failed to read Markdown file metadata: {}", e))?
+            .modified()
+            .map_err(|e| format!("Failed to get Markdown file modification time: {}", e))?
+    } else {
+        // If Markdown doesn't exist, use a very old time
+        std::time::SystemTime::UNIX_EPOCH
+    };
+    
+    // Determine which file is more recent or use the specified source
+    let (from_json, from_markdown) = match source_type.to_lowercase().as_str() {
+        "json" => (true, false),
+        "markdown" | "md" => (false, true),
+        "auto" | _ => {
+            if !json_exists {
+                (false, true)
+            } else if !markdown_exists {
+                (true, false)
+            } else {
+                // Compare modification times
+                match json_modified.duration_since(markdown_modified) {
+                    Ok(_) => (true, false),  // JSON is newer
+                    Err(_) => (false, true), // Markdown is newer
+                }
+            }
+        }
+    };
+    
+    if from_json {
+        println!("Syncing from JSON to Markdown...");
+        let meal_plan = MealPlan::load_from_json(&json_path)
+            .map_err(|e| format!("Failed to load meal plan from JSON: {}", e))?;
+        
+        meal_plan.save_to_markdown(&markdown_path)
+            .map_err(|e| format!("Failed to save meal plan to Markdown: {}", e))?;
+    } else if from_markdown {
+        println!("Syncing from Markdown to JSON...");
+        // Since loading from Markdown is not fully implemented, we'll provide a helpful error
+        return Err("Syncing from Markdown to JSON is not fully implemented yet. Please use JSON as the source.".to_string());
+    }
     
     Ok(())
 }
@@ -620,5 +691,47 @@ mod tests {
         assert!(content.contains("DESCRIPTION:Cook: John"));
         assert!(content.contains("END:VEVENT"));
         assert!(content.contains("END:VCALENDAR"));
+    }
+    
+    #[test]
+    fn test_sync_meal_plan() {
+        // Create a temporary directory for testing
+        let temp_dir = tempfile::tempdir().unwrap();
+        let json_path = temp_dir.path().join("meal_plan.json");
+        let markdown_path = temp_dir.path().join("meal_plan.md");
+        
+        // Create a test config with the temp directory
+        let mut config = Config::new();
+        config.meal_plan_storage_path = temp_dir.path().to_path_buf();
+        
+        // Create a meal plan
+        let mut meal_plan = MealPlan::new(Local::now().date_naive());
+        add_meal(&mut meal_plan, "Dinner".to_string(), "Monday".to_string(), "John".to_string(), "Pasta".to_string()).unwrap();
+        
+        // Save to JSON
+        meal_plan.save_to_json(&json_path).unwrap();
+        
+        // Test sync from JSON to Markdown
+        assert!(sync_meal_plan(&config, "json").is_ok());
+        
+        // Verify the markdown file was created
+        assert!(markdown_path.exists());
+        
+        // Read the markdown file and check for expected content
+        let content = std::fs::read_to_string(&markdown_path).unwrap();
+        assert!(content.contains("# Meal Plan"));
+        assert!(content.contains("## Mon"));
+        assert!(content.contains("### Dinner"));
+        assert!(content.contains("- Cook: John"));
+        assert!(content.contains("- Description: Pasta"));
+        
+        // Test sync with non-existent files
+        let empty_dir = tempfile::tempdir().unwrap();
+        let empty_config = Config {
+            meal_plan_storage_path: empty_dir.path().to_path_buf(),
+            current_week_start_date: Local::now().date_naive(),
+        };
+        
+        assert!(sync_meal_plan(&empty_config, "auto").is_err());
     }
 }

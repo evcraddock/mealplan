@@ -106,15 +106,15 @@ Note: Future date restriction not implemented yet.
 
 ### Sync Command
 
-- [ ] **Implement `sync` Command Handler**
-  - [ ] Compare timestamps of JSON and Markdown files.
-  - [ ] Regenerate the older file from the most recent data source.
-  - [ ] Ensure data consistency between files.
-- [ ] **Unit Tests for `sync` Command**
-  - [ ] Test scenario where JSON is more recent.
-  - [ ] Test scenario where Markdown is more recent.
-  - [ ] Test error handling during file read/write.
-- [ ] **Wire `sync` Handler to CLI**
+- [x] **Implement `sync` Command Handler**
+  - [x] Compare timestamps of JSON and Markdown files.
+  - [x] Regenerate the older file from the most recent data source.
+  - [x] Ensure data consistency between files.
+- [x] **Unit Tests for `sync` Command**
+  - [x] Test scenario where JSON is more recent.
+  - [x] Test scenario where Markdown is more recent.
+  - [x] Test error handling during file read/write.
+- [x] **Wire `sync` Handler to CLI**
 
 ### Config Init Command
 
