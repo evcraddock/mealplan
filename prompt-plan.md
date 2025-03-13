@@ -60,6 +60,7 @@ Steps:
   - Handling of duplicates.
   - Edge cases (e.g., invalid meal types or past dates).
 End with wiring the "add" command handler into the overall CLI command structure.
+Update todo.md and mark tasks that are done
 
 ## Prompt 5: Implement "edit" Command
 

@@ -44,7 +44,7 @@
 - [x] **Unit Tests for CLI Parsing**
   - [x] Create tests for each command and option.
   - [x] Verify error handling for missing/invalid inputs.
-- [ ] **Wire CLI Parsing to Command Handlers**
+- [x] **Wire CLI Parsing to Command Handlers**
 
 ## Implementing Commands
 
