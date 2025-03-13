@@ -39,6 +39,8 @@ enum Commands {
         day: String,
         #[arg(short, long)]
         cook: Option<String>,
+        #[arg(short, long)]
+        description: Option<String>,
     },
     /// Remove a meal from the plan
     Remove {
@@ -101,12 +103,17 @@ fn main() {
                 Err(e) => eprintln!("Failed to add meal: {}", e),
             }
         }
-        Some(Commands::Edit { meal_type, day, cook }) => {
-            println!("Editing meal: {} on {}", meal_type, day);
-            if let Some(c) = cook {
-                println!("New cook: {}", c);
+        Some(Commands::Edit { meal_type, day, cook, description }) => {
+            match edit_meal(&mut meal_plan, meal_type, day, cook, description) {
+                Ok(_) => {
+                    println!("Meal updated successfully.");
+                    // Save the updated meal plan
+                    if let Err(e) = meal_plan.save_to_json(&meal_plan_path) {
+                        eprintln!("Failed to save meal plan: {}", e);
+                    }
+                }
+                Err(e) => eprintln!("Failed to edit meal: {}", e),
             }
-            // TODO: Implement edit_meal function
         }
         Some(Commands::Remove { meal_type, day }) => {
             println!("Removing meal: {} on {}", meal_type, day);
@@ -136,6 +143,68 @@ fn main() {
     }
 
     println!("Default storage path: {:?}", config.meal_plan_storage_path);
+}
+
+fn edit_meal(meal_plan: &mut MealPlan, meal_type_str: String, day_str: String, new_cook: Option<String>, new_description: Option<String>) -> Result<(), String> {
+    // Validate meal type
+    let meal_type = match meal_type_str.to_lowercase().as_str() {
+        "breakfast" => MealType::Breakfast,
+        "lunch" => MealType::Lunch,
+        "dinner" => MealType::Dinner,
+        "snack" => MealType::Snack,
+        _ => return Err("Invalid meal type. Must be breakfast, lunch, dinner, or snack.".to_string()),
+    };
+
+    // Validate day
+    let day = parse_day(&day_str)?;
+
+    // Find the meal to edit
+    let meal = meal_plan.find_meal(&meal_type, &day)
+        .ok_or_else(|| format!("No {} meal found for {}.", meal_type, day))?;
+
+    // Display current meal details
+    println!("Current meal details:");
+    println!("  Type: {}", meal.meal_type);
+    println!("  Day: {}", meal.day);
+    println!("  Cook: {}", meal.cook);
+    println!("  Description: {}", meal.description);
+    println!();
+
+    // Get updated values from user
+    let new_cook = if let Some(cook) = new_cook {
+        cook
+    } else {
+        println!("Enter new cook (leave empty to keep current value):");
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input).map_err(|e| e.to_string())?;
+        let input = input.trim();
+        if input.is_empty() {
+            meal.cook.clone()
+        } else {
+            input.to_string()
+        }
+    };
+
+    let new_description = if let Some(desc) = new_description {
+        desc
+    } else {
+        println!("Enter new description (leave empty to keep current value):");
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input).map_err(|e| e.to_string())?;
+        let input = input.trim();
+        if input.is_empty() {
+            meal.description.clone()
+        } else {
+            input.to_string()
+        }
+    };
+
+    // Remove the old meal and add the updated one
+    meal_plan.remove_meal(&meal_type, &day);
+    let updated_meal = Meal::new(meal_type, day, new_cook, new_description);
+    meal_plan.add_meal(updated_meal);
+
+    Ok(())
 }
 
 fn add_meal(meal_plan: &mut MealPlan, meal_type: String, day: String, cook: String, description: String) -> Result<(), String> {
@@ -197,6 +266,7 @@ fn confirm() -> bool {
 mod tests {
     use super::*;
     use clap::CommandFactory;
+    use std::io::Write;
 
     #[test]
     fn verify_cli() {
@@ -231,12 +301,14 @@ mod tests {
             "edit",
             "--meal-type", "Lunch",
             "--day", "Tuesday",
+            "--description", "Updated meal description",
         ]);
         match args.command {
-            Some(Commands::Edit { meal_type, day, cook }) => {
+            Some(Commands::Edit { meal_type, day, cook, description }) => {
                 assert_eq!(meal_type, "Lunch");
                 assert_eq!(day, "Tuesday");
                 assert_eq!(cook, None);
+                assert_eq!(description, Some("Updated meal description".to_string()));
             }
             _ => panic!("Expected Edit command"),
         }
@@ -302,6 +374,32 @@ mod tests {
         
         // Test adding a duplicate meal (this would normally prompt the user, but in tests it will just fail)
         assert!(add_meal(&mut meal_plan, "Dinner".to_string(), "Monday".to_string(), "Jane".to_string(), "Pizza".to_string()).is_err());
+    }
+
+    #[test]
+    fn test_edit_meal() {
+        let mut meal_plan = MealPlan::new(Local::now().date_naive());
+        
+        // Add a meal first
+        add_meal(&mut meal_plan, "Dinner".to_string(), "Monday".to_string(), "John".to_string(), "Pasta".to_string()).unwrap();
+        
+        // Test editing a non-existent meal
+        assert!(edit_meal(&mut meal_plan, "Breakfast".to_string(), "Monday".to_string(), Some("Alice".to_string()), None).is_err());
+        
+        // Test editing with invalid meal type
+        assert!(edit_meal(&mut meal_plan, "Brunch".to_string(), "Monday".to_string(), Some("Alice".to_string()), None).is_err());
+        
+        // Test editing with invalid day
+        assert!(edit_meal(&mut meal_plan, "Dinner".to_string(), "Someday".to_string(), Some("Alice".to_string()), None).is_err());
+        
+        // Test successful edit with provided values (no interactive prompts)
+        assert!(edit_meal(&mut meal_plan, "Dinner".to_string(), "Monday".to_string(), 
+                         Some("Alice".to_string()), Some("Updated pasta dish".to_string())).is_ok());
+        
+        // Verify the meal was updated
+        let updated_meal = meal_plan.find_meal(&MealType::Dinner, &Day::Weekday(Weekday::Mon)).unwrap();
+        assert_eq!(updated_meal.cook, "Alice");
+        assert_eq!(updated_meal.description, "Updated pasta dish");
     }
 
     #[test]
