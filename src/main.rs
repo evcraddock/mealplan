@@ -3,7 +3,7 @@ mod models;
 use clap::{Parser, Subcommand};
 use models::{Config, MealPlan, Meal, MealType, Day};
 use std::path::PathBuf;
-use chrono::{NaiveDate, Weekday, Local};
+use chrono::{NaiveDate, Weekday, Local, Datelike};
 use std::io::{self, Write};
 
 #[derive(Parser, Debug)]
