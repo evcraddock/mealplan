@@ -92,6 +92,7 @@ Steps:
   - Removal confirmation when deleting the last meal of the week.
   - Handling of non-existent meals.
 End with wiring the "remove" command handler into the CLI.
+Update todo.md and mark off finished tasks
 
 ## Prompt 7: Implement Export Commands
 
@@ -107,6 +108,7 @@ Steps:
   - The iCalendar file is generated with correct event details.
   - The JSON file correctly reflects the meal plan data.
 End with wiring the export command handlers into the CLI command structure.
+Update todo.md and mark off finished tasks
 
 ## Prompt 8: Implement "sync" Command
 
