@@ -27,8 +27,6 @@ enum Commands {
         day: String,
         #[arg(short, long)]
         cook: String,
-        #[arg(short, long)]
-        description: String,
     },
     /// Edit an existing meal in the plan
     Edit {
@@ -38,8 +36,6 @@ enum Commands {
         day: String,
         #[arg(short, long)]
         cook: Option<String>,
-        #[arg(short, long)]
-        description: Option<String>,
     },
     /// Remove a meal from the plan
     Remove {
@@ -90,8 +86,8 @@ fn main() {
     });
 
     match args.command {
-        Some(Commands::Add { meal_type, day, cook, description }) => {
-            match add_meal(&mut meal_plan, meal_type, day, cook, description) {
+        Some(Commands::Add { meal_type, day, cook}) => {
+            match add_meal(&mut meal_plan, meal_type, day, cook) {
                 Ok(_) => {
                     println!("Meal added successfully.");
                     // Save the updated meal plan
@@ -102,13 +98,10 @@ fn main() {
                 Err(e) => eprintln!("Failed to add meal: {}", e),
             }
         }
-        Some(Commands::Edit { meal_type, day, cook, description }) => {
+        Some(Commands::Edit { meal_type, day, cook }) => {
             println!("Editing meal: {} on {}", meal_type, day);
             if let Some(c) = cook {
                 println!("New cook: {}", c);
-            }
-            if let Some(d) = description {
-                println!("New description: {}", d);
             }
             // TODO: Implement edit_meal function
         }
@@ -142,7 +135,7 @@ fn main() {
     println!("Default storage path: {:?}", config.meal_plan_storage_path);
 }
 
-fn add_meal(meal_plan: &mut MealPlan, meal_type: String, day: String, cook: String, description: String) -> Result<(), String> {
+fn add_meal(meal_plan: &mut MealPlan, meal_type: String, day: String, cook: String) -> Result<(), String> {
     // Validate meal type
     let meal_type = match meal_type.to_lowercase().as_str() {
         "breakfast" => MealType::Breakfast,
@@ -165,7 +158,7 @@ fn add_meal(meal_plan: &mut MealPlan, meal_type: String, day: String, cook: Stri
     }
 
     // Add the new meal
-    let new_meal = Meal::new(meal_type, day, cook, description);
+    let new_meal = Meal::new(meal_type, day, cook);
     meal_plan.add_meal(new_meal);
 
     Ok(())
@@ -215,14 +208,12 @@ mod tests {
             "--meal-type", "Dinner",
             "--day", "Monday",
             "--cook", "John",
-            "--description", "Spaghetti",
         ]);
         match args.command {
-            Some(Commands::Add { meal_type, day, cook, description }) => {
+            Some(Commands::Add { meal_type, day, cook }) => {
                 assert_eq!(meal_type, "Dinner");
                 assert_eq!(day, "Monday");
                 assert_eq!(cook, "John");
-                assert_eq!(description, "Spaghetti");
             }
             _ => panic!("Expected Add command"),
         }
@@ -235,14 +226,12 @@ mod tests {
             "edit",
             "--meal-type", "Lunch",
             "--day", "Tuesday",
-            "--description", "Sandwich",
         ]);
         match args.command {
-            Some(Commands::Edit { meal_type, day, cook, description }) => {
+            Some(Commands::Edit { meal_type, day, cook }) => {
                 assert_eq!(meal_type, "Lunch");
                 assert_eq!(day, "Tuesday");
                 assert_eq!(cook, None);
-                assert_eq!(description, Some("Sandwich".to_string()));
             }
             _ => panic!("Expected Edit command"),
         }
@@ -298,16 +287,16 @@ mod tests {
         let mut meal_plan = MealPlan::new(Local::now().date_naive());
         
         // Test adding a valid meal
-        assert!(add_meal(&mut meal_plan, "Dinner".to_string(), "Monday".to_string(), "John".to_string(), "Spaghetti".to_string()).is_ok());
+        assert!(add_meal(&mut meal_plan, "Dinner".to_string(), "Monday".to_string(), "John".to_string()).is_ok());
         
         // Test adding an invalid meal type
-        assert!(add_meal(&mut meal_plan, "Brunch".to_string(), "Tuesday".to_string(), "Alice".to_string(), "Pancakes".to_string()).is_err());
+        assert!(add_meal(&mut meal_plan, "Brunch".to_string(), "Tuesday".to_string(), "Alice".to_string()).is_err());
         
         // Test adding a meal with an invalid day
-        assert!(add_meal(&mut meal_plan, "Lunch".to_string(), "Someday".to_string(), "Bob".to_string(), "Sandwich".to_string()).is_err());
+        assert!(add_meal(&mut meal_plan, "Lunch".to_string(), "Someday".to_string(), "Bob".to_string()).is_err());
         
         // Test adding a duplicate meal (this would normally prompt the user, but in tests it will just fail)
-        assert!(add_meal(&mut meal_plan, "Dinner".to_string(), "Monday".to_string(), "Jane".to_string(), "Pizza".to_string()).is_err());
+        assert!(add_meal(&mut meal_plan, "Dinner".to_string(), "Monday".to_string(), "Jane".to_string()).is_err());
     }
 
     #[test]
