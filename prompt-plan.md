@@ -124,6 +124,7 @@ Steps:
   - Markdown is more recent than JSON.
   - Handling of errors during file read/write.
 End with wiring the "sync" command handler into the overall CLI.
+Update todo.md and mark off finished tasks
 
 ## Prompt 9: Implement "config init" Command
 
@@ -139,6 +140,7 @@ Steps:
   - Correct creation of the config file.
   - Proper handling when the file already exists.
 End with wiring the configuration command handler into the CLI.
+Update todo.md and mark off finished tasks
 
 ## Prompt 10: Integration and End-to-End Testing
 
@@ -154,3 +156,4 @@ Steps:
   - Verifying CLI usage.
   - Checking file outputs (markdown, JSON, iCalendar).
 End with wiring everything together in `main.rs`, ensuring that all features are integrated seamlessly and that no orphaned code remains.
+Update todo.md and mark off finished tasks
