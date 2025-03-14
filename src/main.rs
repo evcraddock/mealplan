@@ -7,6 +7,7 @@ use chrono::{NaiveDate, Weekday, Local, Datelike};
 use std::io::{self, Write};
 use icalendar::{Calendar, Component, Event, EventLike, Property};
 use chrono::{Duration, TimeZone, Utc};
+use std::collections::HashMap;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -81,88 +82,177 @@ enum ConfigAction {
     Init,
 }
 
-fn main() {
+fn main() -> Result<(), String> {
+    // Set up panic handler for unexpected errors
+    std::panic::set_hook(Box::new(|panic_info| {
+        eprintln!("An unexpected error occurred: {}", panic_info);
+        eprintln!("Please report this issue to the developers.");
+    }));
+
+    if let Err(e) = run() {
+        eprintln!("Error: {}", e);
+        std::process::exit(1);
+    }
+    
+    Ok(())
+}
+
+/// Main application logic, separated to allow for proper error handling
+fn run() -> Result<(), String> {
     let args = Args::parse();
 
-    // Initialize default configuration
-    let config = Config::new();
-    let meal_plan_path = config.meal_plan_storage_path.join("meal_plan.json");
+    // Load configuration
+    let config_dir = dirs::home_dir()
+        .ok_or_else(|| "Could not determine home directory".to_string())?
+        .join(".config")
+        .join("mealplan");
+    
+    let config_path = config_dir.join("config.json");
+    
+    // Try to load config or create default
+    let config = if config_path.exists() {
+        match Config::load(&config_path) {
+            Ok(config) => config,
+            Err(e) => {
+                eprintln!("Warning: Failed to load configuration: {}", e);
+                eprintln!("Using default configuration instead.");
+                Config::new()
+            }
+        }
+    } else {
+        if args.command.as_ref().map_or(false, |cmd| {
+            matches!(cmd, Commands::Config { action: ConfigAction::Init })
+        }) {
+            // Don't show warning if user is running config init
+        } else {
+            eprintln!("Warning: No configuration file found at {:?}", config_path);
+            eprintln!("Using default configuration. Run 'mealplan config init' to create a configuration file.");
+        }
+        Config::new()
+    };
+
+    // Determine storage path (from args or config)
+    let storage_path = match &args.path {
+        Some(path) => path.clone(),
+        None => config.meal_plan_storage_path.clone(),
+    };
+    
+    // Ensure storage directory exists
+    if !storage_path.exists() {
+        std::fs::create_dir_all(&storage_path)
+            .map_err(|e| format!("Failed to create storage directory: {}", e))?;
+    }
+
+    let meal_plan_path = storage_path.join("meal_plan.json");
 
     // Load or create a new meal plan
-    let mut meal_plan = MealPlan::load_from_json(&meal_plan_path).unwrap_or_else(|_| {
-        println!("No existing meal plan found. Creating a new one.");
-        MealPlan::new(Local::now().date_naive())
-    });
+    let mut meal_plan = match MealPlan::load_from_json(&meal_plan_path) {
+        Ok(plan) => plan,
+        Err(e) => {
+            if meal_plan_path.exists() {
+                eprintln!("Warning: Failed to load meal plan: {}", e);
+                eprintln!("Creating a new meal plan instead.");
+            } else {
+                println!("No existing meal plan found. Creating a new one.");
+            }
+            MealPlan::new(Local::now().date_naive())
+        }
+    };
 
     match args.command {
         Some(Commands::Add { description, meal_type, day, cook}) => {
-            match add_meal(&mut meal_plan, meal_type, day, cook, description) {
-                Ok(_) => {
-                    println!("Meal added successfully.");
-                    // Save the updated meal plan
-                    if let Err(e) = meal_plan.save_to_json(&meal_plan_path) {
-                        eprintln!("Failed to save meal plan: {}", e);
-                    }
-                }
-                Err(e) => eprintln!("Failed to add meal: {}", e),
+            add_meal(&mut meal_plan, meal_type, day, cook, description)?;
+            println!("Meal added successfully.");
+            
+            // Save the updated meal plan
+            meal_plan.save_to_json(&meal_plan_path)
+                .map_err(|e| format!("Failed to save meal plan: {}", e))?;
+            
+            // Also update markdown for consistency
+            let markdown_path = storage_path.join("meal_plan.md");
+            if let Err(e) = meal_plan.save_to_markdown(&markdown_path) {
+                eprintln!("Warning: Failed to update markdown file: {}", e);
             }
         }
         Some(Commands::Edit { description, meal_type, day, cook }) => {
-            match edit_meal(&mut meal_plan, meal_type, day, cook, description) {
-                Ok(_) => {
-                    println!("Meal updated successfully.");
-                    // Save the updated meal plan
-                    if let Err(e) = meal_plan.save_to_json(&meal_plan_path) {
-                        eprintln!("Failed to save meal plan: {}", e);
-                    }
-                }
-                Err(e) => eprintln!("Failed to edit meal: {}", e),
+            edit_meal(&mut meal_plan, meal_type, day, cook, description)?;
+            println!("Meal updated successfully.");
+            
+            // Save the updated meal plan
+            meal_plan.save_to_json(&meal_plan_path)
+                .map_err(|e| format!("Failed to save meal plan: {}", e))?;
+            
+            // Also update markdown for consistency
+            let markdown_path = storage_path.join("meal_plan.md");
+            if let Err(e) = meal_plan.save_to_markdown(&markdown_path) {
+                eprintln!("Warning: Failed to update markdown file: {}", e);
             }
         }
         Some(Commands::Remove { meal_type, day }) => {
-            match remove_meal(&mut meal_plan, meal_type, day) {
-                Ok(_) => {
-                    println!("Meal removed successfully.");
-                    // Save the updated meal plan
-                    if let Err(e) = meal_plan.save_to_json(&meal_plan_path) {
-                        eprintln!("Failed to save meal plan: {}", e);
-                    }
-                }
-                Err(e) => eprintln!("Failed to remove meal: {}", e),
+            remove_meal(&mut meal_plan, meal_type, day)?;
+            println!("Meal removed successfully.");
+            
+            // Save the updated meal plan
+            meal_plan.save_to_json(&meal_plan_path)
+                .map_err(|e| format!("Failed to save meal plan: {}", e))?;
+            
+            // Also update markdown for consistency
+            let markdown_path = storage_path.join("meal_plan.md");
+            if let Err(e) = meal_plan.save_to_markdown(&markdown_path) {
+                eprintln!("Warning: Failed to update markdown file: {}", e);
             }
         }
         Some(Commands::ExportIcal { output }) => {
-            match export_ical(&meal_plan, &output) {
-                Ok(_) => println!("Meal plan exported to iCal successfully: {:?}", output),
-                Err(e) => eprintln!("Failed to export meal plan to iCal: {}", e),
-            }
+            export_ical(&meal_plan, &output)?;
+            println!("Meal plan exported to iCal successfully: {:?}", output);
         }
         Some(Commands::ExportJson { output }) => {
-            match export_json(&meal_plan, &output) {
-                Ok(_) => println!("Meal plan exported to JSON successfully: {:?}", output),
-                Err(e) => eprintln!("Failed to export meal plan to JSON: {}", e),
-            }
+            export_json(&meal_plan, &output)?;
+            println!("Meal plan exported to JSON successfully: {:?}", output);
         }
         Some(Commands::Sync { source }) => {
-            match sync_meal_plan(&config, &source) {
-                Ok(_) => println!("Meal plan synchronized successfully."),
-                Err(e) => eprintln!("Failed to sync meal plan: {}", e),
-            }
+            let config_with_storage = Config {
+                meal_plan_storage_path: storage_path.clone(),
+                current_week_start_date: config.current_week_start_date,
+            };
+            sync_meal_plan(&config_with_storage, &source)?;
+            println!("Meal plan synchronized successfully.");
         }
         Some(Commands::Config { action: ConfigAction::Init }) => {
-            match config_init(&config) {
-                Ok(_) => println!("Configuration initialized successfully."),
-                Err(e) => eprintln!("Failed to initialize configuration: {}", e),
-            }
+            config_init(&config)?;
+            println!("Configuration initialized successfully.");
         }
         None => {
             println!("Welcome to the Meal Plan CLI Tool!");
             println!("This tool helps you organize and manage your weekly meal plans.");
             println!("Use --help to see available commands.");
+            
+            // Show a summary of the current meal plan if it exists
+            if !meal_plan.meals.is_empty() {
+                println!("\nCurrent Meal Plan Summary:");
+                println!("Week starting: {}", meal_plan.week_start_date.format("%Y-%m-%d"));
+                println!("Total meals: {}", meal_plan.meals.len());
+                println!("Last modified: {}", meal_plan.last_modified.format("%Y-%m-%d %H:%M:%S"));
+                
+                // Group meals by day for a cleaner display
+                let mut meals_by_day: HashMap<String, Vec<&Meal>> = HashMap::new();
+                for meal in &meal_plan.meals {
+                    let day_str = format!("{}", meal.day);
+                    meals_by_day.entry(day_str).or_default().push(meal);
+                }
+                
+                for (day, meals) in meals_by_day {
+                    println!("\n{}:", day);
+                    for meal in meals {
+                        println!("  {}: {} (Cook: {})", meal.meal_type, meal.description, meal.cook);
+                    }
+                }
+            }
         }
     }
 
-    println!("Default storage path: {:?}", config.meal_plan_storage_path);
+    println!("Storage path: {:?}", storage_path);
+    Ok(())
 }
 
 fn remove_meal(meal_plan: &mut MealPlan, meal_type_str: String, day_str: String) -> Result<(), String> {
@@ -807,5 +897,124 @@ mod tests {
         } else {
             std::env::remove_var("HOME");
         }
+    }
+    
+    #[test]
+    fn test_end_to_end_workflow() {
+        // Create a temporary directory for testing
+        let temp_dir = tempfile::tempdir().unwrap();
+        let storage_path = temp_dir.path().to_path_buf();
+        let json_path = storage_path.join("meal_plan.json");
+        let markdown_path = storage_path.join("meal_plan.md");
+        let ical_path = storage_path.join("meal_plan.ics");
+        
+        // Create a test config
+        let config = Config {
+            meal_plan_storage_path: storage_path.clone(),
+            current_week_start_date: Local::now().date_naive(),
+        };
+        
+        // Create a new meal plan
+        let mut meal_plan = MealPlan::new(Local::now().date_naive());
+        
+        // Step 1: Add a meal
+        assert!(add_meal(
+            &mut meal_plan, 
+            "Dinner".to_string(), 
+            "Monday".to_string(), 
+            "John".to_string(), 
+            "Pasta".to_string()
+        ).is_ok());
+        
+        // Save the meal plan
+        assert!(meal_plan.save_to_json(&json_path).is_ok());
+        
+        // Step 2: Edit the meal
+        assert!(edit_meal(
+            &mut meal_plan,
+            "Dinner".to_string(),
+            "Monday".to_string(),
+            Some("Alice".to_string()),
+            Some("Spaghetti Bolognese".to_string())
+        ).is_ok());
+        
+        // Save the updated meal plan
+        assert!(meal_plan.save_to_json(&json_path).is_ok());
+        
+        // Step 3: Export to iCal
+        assert!(export_ical(&meal_plan, &ical_path).is_ok());
+        assert!(ical_path.exists());
+        
+        // Step 4: Export to Markdown
+        assert!(meal_plan.save_to_markdown(&markdown_path).is_ok());
+        assert!(markdown_path.exists());
+        
+        // Step 5: Sync (JSON to Markdown)
+        assert!(sync_meal_plan(&config, "json").is_ok());
+        
+        // Verify final state
+        let loaded_plan = MealPlan::load_from_json(&json_path).unwrap();
+        assert_eq!(loaded_plan.meals.len(), 1);
+        
+        let meal = loaded_plan.find_meal(&MealType::Dinner, &Day::Weekday(Weekday::Mon)).unwrap();
+        assert_eq!(meal.cook, "Alice");
+        assert_eq!(meal.description, "Spaghetti Bolognese");
+        
+        // Verify markdown content
+        let md_content = std::fs::read_to_string(&markdown_path).unwrap();
+        assert!(md_content.contains("Alice"));
+        assert!(md_content.contains("Spaghetti Bolognese"));
+        
+        // Verify iCal content
+        let ical_content = std::fs::read_to_string(&ical_path).unwrap();
+        assert!(ical_content.contains("SUMMARY:Dinner: Spaghetti Bolognese"));
+    }
+    
+    #[test]
+    fn test_error_handling() {
+        // Test handling of invalid inputs
+        let mut meal_plan = MealPlan::new(Local::now().date_naive());
+        
+        // Invalid meal type
+        let result = add_meal(
+            &mut meal_plan,
+            "InvalidMealType".to_string(),
+            "Monday".to_string(),
+            "John".to_string(),
+            "Test Meal".to_string()
+        );
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Invalid meal type"));
+        
+        // Invalid day
+        let result = add_meal(
+            &mut meal_plan,
+            "Dinner".to_string(),
+            "InvalidDay".to_string(),
+            "John".to_string(),
+            "Test Meal".to_string()
+        );
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Invalid day format"));
+        
+        // Non-existent meal for edit
+        let result = edit_meal(
+            &mut meal_plan,
+            "Breakfast".to_string(),
+            "Monday".to_string(),
+            Some("Alice".to_string()),
+            None
+        );
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("No Breakfast meal found"));
+        
+        // Non-existent meal for remove
+        let result = remove_meal(
+            &mut meal_plan,
+            "Lunch".to_string(),
+            "Tuesday".to_string()
+        );
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("No Lunch meal found"));
     }
 }

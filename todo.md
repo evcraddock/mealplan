@@ -129,24 +129,24 @@ Note: Future date restriction not implemented yet.
 
 ## Integration and Testing
 
-- [ ] **Integrate All Components**
-  - [ ] Combine CLI parsing, command handlers, and data models in `main.rs`.
-  - [ ] Implement global error handling to display errors clearly.
-- [ ] **Develop Integration Tests**
-  - [ ] End-to-end scenario: add, edit, export, and sync a meal.
-  - [ ] Simulate complete user flows with edge cases.
-- [ ] **Document Manual Testing Procedures**
-  - [ ] Instructions for verifying CLI usage.
-  - [ ] Steps to check file outputs (Markdown, JSON, iCalendar).
+- [x] **Integrate All Components**
+  - [x] Combine CLI parsing, command handlers, and data models in `main.rs`.
+  - [x] Implement global error handling to display errors clearly.
+- [x] **Develop Integration Tests**
+  - [x] End-to-end scenario: add, edit, export, and sync a meal.
+  - [x] Simulate complete user flows with edge cases.
+- [x] **Document Manual Testing Procedures**
+  - [x] Instructions for verifying CLI usage.
+  - [x] Steps to check file outputs (Markdown, JSON, iCalendar).
 
 ## Final Tasks
 
-- [ ] **Code Review and Refactoring**
-  - [ ] Ensure no orphaned code remains.
-  - [ ] Confirm that each feature builds on the previous steps.
-- [ ] **Documentation**
-  - [ ] Write README.md with project description and usage instructions.
-  - [ ] Update inline code comments and docs for clarity.
-- [ ] **Final Testing**
-  - [ ] Run all unit and integration tests.
-  - [ ] Verify manual testing procedures.
+- [x] **Code Review and Refactoring**
+  - [x] Ensure no orphaned code remains.
+  - [x] Confirm that each feature builds on the previous steps.
+- [x] **Documentation**
+  - [x] Write README.md with project description and usage instructions.
+  - [x] Update inline code comments and docs for clarity.
+- [x] **Final Testing**
+  - [x] Run all unit and integration tests.
+  - [x] Verify manual testing procedures.
