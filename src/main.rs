@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 mod models;
 
 use clap::{Parser, Subcommand};
@@ -462,7 +464,7 @@ fn export_ical(meal_plan: &MealPlan, output_path: &PathBuf) -> Result<(), String
     Ok(())
 }
 
-fn config_init(config: &Config) -> Result<(), String> {
+fn config_init(_config: &Config) -> Result<(), String> {
     // Define the config file path
     let config_dir = dirs::home_dir()
         .ok_or_else(|| "Could not determine home directory".to_string())?
