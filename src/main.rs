@@ -150,8 +150,10 @@ fn main() {
             }
         }
         Some(Commands::Config { action: ConfigAction::Init }) => {
-            println!("Initializing configuration");
-            // TODO: Implement config_init function
+            match config_init(&config) {
+                Ok(_) => println!("Configuration initialized successfully."),
+                Err(e) => eprintln!("Failed to initialize configuration: {}", e),
+            }
         }
         None => {
             println!("Welcome to the Meal Plan CLI Tool!");
@@ -366,6 +368,46 @@ fn export_ical(meal_plan: &MealPlan, output_path: &PathBuf) -> Result<(), String
     let ical_string = calendar.to_string();
     std::fs::write(output_path, ical_string)
         .map_err(|e| format!("Failed to write iCal file: {}", e))?;
+    
+    Ok(())
+}
+
+fn config_init(config: &Config) -> Result<(), String> {
+    // Define the config file path
+    let config_dir = dirs::home_dir()
+        .ok_or_else(|| "Could not determine home directory".to_string())?
+        .join(".config")
+        .join("mealplan");
+    
+    // Create the directory if it doesn't exist
+    if !config_dir.exists() {
+        std::fs::create_dir_all(&config_dir)
+            .map_err(|e| format!("Failed to create config directory: {}", e))?;
+    }
+    
+    let config_path = config_dir.join("config.json");
+    
+    // Check if the config file already exists
+    if config_path.exists() {
+        println!("Configuration file already exists at {:?}. Overwrite? (y/n)", config_path);
+        if !confirm() {
+            return Err("Configuration initialization cancelled by user.".to_string());
+        }
+    }
+    
+    // Create a new config with default values
+    let new_config = Config {
+        meal_plan_storage_path: config_dir.clone(),
+        current_week_start_date: Local::now().date_naive(),
+    };
+    
+    // Save the config
+    new_config.save(&config_path)
+        .map_err(|e| format!("Failed to save configuration: {}", e))?;
+    
+    println!("Configuration saved to {:?}", config_path);
+    println!("Meal plan storage path: {:?}", new_config.meal_plan_storage_path);
+    println!("Current week start date: {}", new_config.current_week_start_date);
     
     Ok(())
 }
@@ -733,5 +775,37 @@ mod tests {
         };
         
         assert!(sync_meal_plan(&empty_config, "auto").is_err());
+    }
+    
+    #[test]
+    fn test_config_init() {
+        // Create a temporary directory for testing
+        let temp_dir = tempfile::tempdir().unwrap();
+        
+        // Create a test config with the temp directory
+        let mut config = Config::new();
+        config.meal_plan_storage_path = temp_dir.path().to_path_buf();
+        
+        // Mock the home directory for testing
+        let original_home = std::env::var("HOME").ok();
+        std::env::set_var("HOME", temp_dir.path().to_str().unwrap());
+        
+        // Test config initialization
+        assert!(config_init(&config).is_ok());
+        
+        // Verify the config file was created
+        let config_path = temp_dir.path().join(".config").join("mealplan").join("config.json");
+        assert!(config_path.exists());
+        
+        // Load the config and verify its contents
+        let loaded_config = Config::load(&config_path).unwrap();
+        assert_eq!(loaded_config.meal_plan_storage_path, temp_dir.path().join(".config").join("mealplan"));
+        
+        // Restore the original HOME environment variable
+        if let Some(home) = original_home {
+            std::env::set_var("HOME", home);
+        } else {
+            std::env::remove_var("HOME");
+        }
     }
 }

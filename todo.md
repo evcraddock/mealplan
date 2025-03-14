@@ -118,14 +118,14 @@ Note: Future date restriction not implemented yet.
 
 ### Config Init Command
 
-- [ ] **Implement `config init` Command Handler**
-  - [ ] Generate a default `config.toml` in `~/.config/todufit/`.
-  - [ ] Set default values (e.g., `meal_plan_storage_path`, `current_week_start_date`).
-  - [ ] If config file exists, prompt user for confirmation before overwriting.
-- [ ] **Unit Tests for `config init` Command**
-  - [ ] Test config file creation.
-  - [ ] Test handling when the config file already exists.
-- [ ] **Wire `config init` Handler to CLI**
+- [x] **Implement `config init` Command Handler**
+  - [x] Generate a default `config.json` in `~/.config/mealplan/`.
+  - [x] Set default values (e.g., `meal_plan_storage_path`, `current_week_start_date`).
+  - [x] If config file exists, prompt user for confirmation before overwriting.
+- [x] **Unit Tests for `config init` Command**
+  - [x] Test config file creation.
+  - [x] Test handling when the config file already exists.
+- [x] **Wire `config init` Handler to CLI**
 
 ## Integration and Testing
 
